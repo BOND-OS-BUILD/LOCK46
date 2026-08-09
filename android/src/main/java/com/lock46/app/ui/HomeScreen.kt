@@ -235,8 +235,8 @@ private fun SetupRequiredDialog(onOpenSettings: () -> Unit, onDismiss: () -> Uni
         text = {
             Column {
                 Text(
-                    "LOCK46 cannot enforce restrictions until the accessibility service " +
-                        "and the display-over-other-apps permission are granted.",
+                    "LOCK46 cannot enforce restrictions until usage access and the " +
+                        "display-over-other-apps permission are granted.",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(Modifier.height(10.dp))

@@ -12,7 +12,6 @@ import android.os.Process
 import android.provider.Settings
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import com.lock46.app.enforce.Lock46AccessibilityService
 
 /**
  * Every permission LOCK46 asks for, why it is needed, and how to check it.
@@ -25,10 +24,11 @@ enum class RequiredPermission(
     val why: String,
     val required: Boolean
 ) {
-    ACCESSIBILITY(
-        title = "Accessibility service",
-        why = "Detects which app comes to the foreground so a blocked app can be caught " +
-            "the moment it opens. LOCK46 does not read screen content.",
+    USAGE_ACCESS(
+        title = "Usage access",
+        why = "Lets LOCK46 see which app you just opened, so an app you have not approved " +
+            "can be blocked. LOCK46 reads only the package name of the app in front — " +
+            "never screen content, and never your usage history.",
         required = true
     ),
     OVERLAY(
@@ -36,12 +36,6 @@ enum class RequiredPermission(
         why = "Draws the LOCK46 blocking screen on top of a blocked app. Without it, " +
             "LOCK46 can only send you back to the home screen.",
         required = true
-    ),
-    USAGE_ACCESS(
-        title = "Usage access",
-        why = "Backstop foreground-app check, used if the accessibility service is " +
-            "stopped by the system.",
-        required = false
     ),
     NOTIFICATIONS(
         title = "Notifications",
@@ -60,7 +54,6 @@ enum class RequiredPermission(
 object Permissions {
 
     fun isGranted(context: Context, permission: RequiredPermission): Boolean = when (permission) {
-        RequiredPermission.ACCESSIBILITY -> isAccessibilityServiceEnabled(context)
         RequiredPermission.OVERLAY -> Settings.canDrawOverlays(context)
         RequiredPermission.USAGE_ACCESS -> hasUsageAccess(context)
         RequiredPermission.NOTIFICATIONS -> hasNotificationPermission(context)
@@ -73,9 +66,6 @@ object Permissions {
 
     fun settingsIntentFor(context: Context, permission: RequiredPermission): Intent =
         when (permission) {
-            RequiredPermission.ACCESSIBILITY ->
-                Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
-
             RequiredPermission.OVERLAY ->
                 Intent(
                     Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
@@ -93,29 +83,6 @@ object Permissions {
                 Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
         }.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
-    /**
-     * Reads the enabled-accessibility-services setting rather than relying on a static
-     * flag in the service, because the system can stop the service without notifying us.
-     */
-    fun isAccessibilityServiceEnabled(context: Context): Boolean {
-        val expected = "${context.packageName}/${Lock46AccessibilityService::class.java.name}"
-        val expectedShort = "${context.packageName}/.enforce.Lock46AccessibilityService"
-
-        val enabledSetting = Settings.Secure.getInt(
-            context.contentResolver,
-            Settings.Secure.ACCESSIBILITY_ENABLED,
-            0
-        )
-        if (enabledSetting != 1) return false
-
-        val enabledServices = Settings.Secure.getString(
-            context.contentResolver,
-            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-        ) ?: return false
-
-        return enabledServices.split(':')
-            .any { it.equals(expected, ignoreCase = true) || it.equals(expectedShort, true) }
-    }
 
     fun hasUsageAccess(context: Context): Boolean = runCatching {
         val appOps = context.getSystemService(AppOpsManager::class.java)

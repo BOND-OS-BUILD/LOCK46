@@ -151,7 +151,7 @@ fun SettingsScreen(
             Note(
                 "V1 is a prototype authorisation mechanism running as a normal installed " +
                     "app. It is not Device Owner enforcement and is not tamper-proof: " +
-                    "someone with physical access can disable the accessibility service, " +
+                    "someone with physical access can revoke usage access, " +
                     "boot into safe mode, or uninstall LOCK46."
             )
         }

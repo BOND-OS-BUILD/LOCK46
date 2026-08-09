@@ -5,7 +5,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
 import android.net.Uri
-import android.provider.Settings
 import android.view.inputmethod.InputMethodManager
 import com.lock46.app.core.AccessPolicy
 
@@ -107,8 +106,4 @@ object InstalledApps {
         pm.getApplicationLabel(pm.getApplicationInfo(packageName, 0)).toString()
     }.getOrDefault(packageName)
 
-    /** Intent that takes the user to the LOCK46 accessibility settings page. */
-    fun accessibilitySettingsIntent(): Intent =
-        Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 }

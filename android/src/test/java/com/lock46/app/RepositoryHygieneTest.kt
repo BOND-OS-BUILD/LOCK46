@@ -93,6 +93,28 @@ class RepositoryHygieneTest {
         }
     }
 
+    /**
+     * Google Play Protect hard-blocks the installation of any sideloaded app whose manifest
+     * declares BIND_ACCESSIBILITY_SERVICE — with no "install anyway" option. LOCK46 is
+     * distributed as a direct APK download, so re-introducing an accessibility service
+     * would make the app uninstallable for its users. This test is the guard rail.
+     */
+    @Test
+    fun `the manifest declares no accessibility service`() {
+        val manifest = File(repoRoot, "android/src/main/AndroidManifest.xml").readText()
+        val permission = "android.permission.BIND_" + "ACCESSIBILITY_SERVICE"
+        val action = "android.accessibilityservice." + "AccessibilityService"
+
+        assertTrue(
+            "declaring $permission makes LOCK46 uninstallable via Play Protect",
+            !manifest.contains(permission)
+        )
+        assertTrue(
+            "declaring the $action intent filter makes LOCK46 uninstallable via Play Protect",
+            !manifest.contains(action)
+        )
+    }
+
     @Test
     fun `there is exactly one android manifest`() {
         val manifests = sourceFiles().filter { it.name == "AndroidManifest.xml" }

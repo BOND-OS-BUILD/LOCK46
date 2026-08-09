@@ -1,7 +1,6 @@
 package com.lock46.app.enforce
 
 import android.content.Context
-import android.content.Intent
 import android.graphics.PixelFormat
 import android.os.Handler
 import android.os.Looper
@@ -23,6 +22,9 @@ import com.lock46.app.util.TimeFormat
  * to reliably put UI in front of the user from a service. Deliberately, there is no
  * "disable LOCK46" affordance on this screen — the only exit is Home, or the PIN-protected
  * End Duty action inside the app.
+ *
+ * The overlay is also what makes sub-second polling acceptable: it covers the blocked app
+ * the moment the poll fires, so the user sees LOCK46 rather than a usable app.
  */
 class BlockOverlay(private val context: Context) {
 
@@ -107,11 +109,7 @@ class BlockOverlay(private val context: Context) {
 
     private fun goHome() {
         hide()
-        val home = Intent(Intent.ACTION_MAIN)
-            .addCategory(Intent.CATEGORY_HOME)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        runCatching { context.startActivity(home) }
-        Lock46AccessibilityService.performGoHome()
+        Enforcer.goHome()
     }
 
     private fun startTicking() {

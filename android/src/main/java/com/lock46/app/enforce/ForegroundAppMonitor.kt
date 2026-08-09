@@ -5,20 +5,32 @@ import android.app.usage.UsageStatsManager
 import android.content.Context
 
 /**
- * Backstop foreground-app detection built on UsageStats.
+ * Foreground-app detection, built on UsageStats.
  *
- * The accessibility service is the primary signal because it is event-driven and fires the
- * instant a window changes. This poller exists for the case the system stops that service:
- * it is slower and coarser, but it means enforcement degrades rather than disappears.
+ * This is LOCK46's only detection mechanism, and that is a deliberate choice rather than a
+ * limitation of the code. An AccessibilityService would report a window change instantly,
+ * but Google Play Protect hard-blocks the installation of any sideloaded app whose manifest
+ * declares BIND_ACCESSIBILITY_SERVICE — with no "install anyway" option. An app nobody can
+ * install enforces nothing, so LOCK46 polls instead and accepts sub-second latency.
+ *
+ * Polling only runs while a duty period is active; in Free Mode nothing here executes.
  */
 class ForegroundAppMonitor(context: Context) {
 
     private val usageStats: UsageStatsManager? =
         runCatching { context.getSystemService(UsageStatsManager::class.java) }.getOrNull()
 
+    /** Last package reported, so callers can cheaply detect a change. */
+    @Volatile
+    var lastKnownPackage: String? = null
+        private set
+
     /**
-     * The package that most recently moved to the foreground within [lookbackMs].
-     * Returns null when usage access has not been granted or nothing changed.
+     * The package that most recently came to the foreground within [lookbackMs].
+     *
+     * Returns null when usage access has not been granted, or when no foreground event has
+     * occurred in the window — in which case the previously known package is still current
+     * and callers should keep using [lastKnownPackage].
      */
     fun currentForegroundPackage(lookbackMs: Long = DEFAULT_LOOKBACK_MS): String? {
         val manager = usageStats ?: return null
@@ -32,7 +44,7 @@ class ForegroundAppMonitor(context: Context) {
 
         while (events.hasNextEvent()) {
             events.getNextEvent(event)
-            // ACTIVITY_RESUMED is the current name for the event formerly called
+            // ACTIVITY_RESUMED is the current name for the event once called
             // MOVE_TO_FOREGROUND; both are constant 1, so this covers every supported API.
             if (event.eventType == UsageEvents.Event.ACTIVITY_RESUMED) {
                 if (event.timeStamp >= latestTime) {
@@ -41,10 +53,27 @@ class ForegroundAppMonitor(context: Context) {
                 }
             }
         }
+
+        if (latestPackage != null) lastKnownPackage = latestPackage
         return latestPackage
     }
 
+    /**
+     * Best-known current foreground package: the newest event in the window, or the last
+     * one seen if the window was quiet (the user is still sitting in the same app).
+     */
+    fun resolveForegroundPackage(): String? =
+        currentForegroundPackage() ?: lastKnownPackage
+
+    fun reset() {
+        lastKnownPackage = null
+    }
+
     companion object {
+        /**
+         * Window queried on each poll. Wide enough to survive a missed tick or a device that
+         * batches events, narrow enough that the query stays cheap at this frequency.
+         */
         private const val DEFAULT_LOOKBACK_MS = 10_000L
     }
 }

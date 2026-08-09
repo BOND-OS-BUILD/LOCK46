@@ -195,7 +195,8 @@ private fun PermissionsStep(
         Note(
             "Android will not let an installed app restrict other apps without these. " +
                 "Each one is listed with the exact reason LOCK46 needs it — nothing here " +
-                "is requested speculatively."
+                "is requested speculatively. LOCK46 does not use an accessibility " +
+                "service."
         )
     }
 

@@ -12,9 +12,9 @@ import com.lock46.app.util.InstalledApps
 /**
  * Single decision point for enforcement.
  *
- * Both foreground signals — the accessibility service and the UsageStats poller — funnel
- * into [onForegroundPackage], so the allow/block rule lives in exactly one place and the
- * overlay can never be shown by one path while the other believes duty has ended.
+ * Every foreground signal funnels into [onForegroundPackage] — the poller in
+ * [DutyService], plus the direct calls made when the whitelist changes or the app is
+ * resumed — so the allow/block rule lives in exactly one place.
  */
 object Enforcer {
 
@@ -95,15 +95,26 @@ object Enforcer {
             if (!shown) {
                 // No overlay permission: fall back to bouncing the user home. Weaker, and
                 // the README says so, but it still prevents casual use of a blocked app.
-                Lock46AccessibilityService.performGoHome()
-                runCatching {
-                    appContext.startActivity(
-                        Intent(Intent.ACTION_MAIN)
-                            .addCategory(Intent.CATEGORY_HOME)
-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    )
-                }
+                goHome()
             }
+        }
+    }
+
+    /**
+     * Sends the user to the home screen.
+     *
+     * Holding SYSTEM_ALERT_WINDOW is one of Android's documented exemptions from the
+     * background-activity-start restrictions, which is what makes this work from a service
+     * with no visible Activity — the same permission that lets the overlay be drawn.
+     */
+    fun goHome() {
+        if (!::appContext.isInitialized) return
+        runCatching {
+            appContext.startActivity(
+                Intent(Intent.ACTION_MAIN)
+                    .addCategory(Intent.CATEGORY_HOME)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
         }
     }
 

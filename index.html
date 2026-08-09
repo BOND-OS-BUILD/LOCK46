@@ -16,7 +16,7 @@
 
 <header class="topbar">
   <span class="wordmark">LOCK46</span>
-  <span class="version">V1.0.0</span>
+  <span class="version">V1.0.1</span>
 </header>
 
 <main>
@@ -83,6 +83,15 @@
     </article>
 
     <article class="card">
+      <h2>Installs normally</h2>
+      <p>
+        LOCK46 uses no accessibility service. Google Play Protect blocks
+        sideloaded apps that ask for one, so LOCK46 detects the foreground app
+        through Usage Access instead and installs like any other APK.
+      </p>
+    </article>
+
+    <article class="card">
       <h2>Emergency calling</h2>
       <p>
         The dialer is never intentionally blocked, whether or not you have
@@ -120,9 +129,9 @@
     </p>
     <p class="muted">
       It does not collect calls, messages, contacts, location, microphone,
-      camera, files or browsing history. The accessibility service reads only
-      the package name of the app coming to the foreground — never screen
-      content.
+      camera, files or browsing history. LOCK46 reads only the package name of
+      the app coming to the foreground — never screen content — and only while
+      a duty period is running.
     </p>
   </section>
 
@@ -134,8 +143,8 @@
       a personal phone, and this release does not pretend otherwise.
     </p>
     <p class="muted">
-      Someone with physical access to an unlocked phone can disable the
-      accessibility service, boot into safe mode, or uninstall LOCK46. The
+      Someone with physical access to an unlocked phone can revoke usage
+      access, boot into safe mode, or uninstall LOCK46. The
       admin PIN is a prototype authorisation mechanism that stops casual
       early exit — it is not tamper resistance. Device Owner / Android
       Enterprise enforcement is planned for V2.
@@ -148,7 +157,7 @@
       <li>Download <code>LOCK46-v1.apk</code> and open it. Allow installation from this source if Android asks.</li>
       <li>Open LOCK46 and follow the five setup steps.</li>
       <li>Create an admin PIN — this is the only way to end duty early.</li>
-      <li>Grant the accessibility service and display-over-other-apps permissions. Each is explained before you are sent to Android settings.</li>
+      <li>Grant Usage Access and Display over other apps. Each is explained before you are sent to Android settings.</li>
       <li>Choose your essential apps.</li>
       <li>Press START DUTY when you report for duty.</li>
     </ol>
@@ -157,7 +166,7 @@
 </main>
 
 <footer>
-  <p>LOCK46 V1.0.0 · <code>com.lock46.app</code></p>
+  <p>LOCK46 V1.0.1 · <code>com.lock46.app</code></p>
   <p class="muted">
     <a href="https://github.com/BOND-OS-BUILD/LOCK46" rel="noopener">Source and build instructions on GitHub</a>
   </p>

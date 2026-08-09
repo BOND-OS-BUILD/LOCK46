@@ -22,7 +22,14 @@
     <!-- Draws the LOCK46 blocking screen on top of a blocked app. User-granted in Settings. -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
-    <!-- Backstop foreground-app detection. Special access, user-granted in Settings. -->
+    <!--
+      Foreground-app detection. Special access, user-granted in Settings.
+
+      This is how LOCK46 knows which app you just opened. An AccessibilityService would
+      detect it faster, but Google Play Protect hard-blocks the installation of any
+      sideloaded app that declares BIND_ACCESSIBILITY_SERVICE, so LOCK46 deliberately does
+      not declare one — it polls UsageStats instead while a duty period is running.
+    -->
     <uses-permission
         android:name="android.permission.PACKAGE_USAGE_STATS"
         tools:ignore="ProtectedPermissions" />
@@ -77,23 +84,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <!--
-          Primary foreground-app signal. Not exported to third parties: the system binds it
-          only after the user enables it in Accessibility settings.
-        -->
-        <service
-            android:name=".enforce.Lock46AccessibilityService"
-            android:exported="false"
-            android:label="@string/accessibility_service_label"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
-            </intent-filter>
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/accessibility_service_config" />
-        </service>
 
         <!--
           Keeps the process alive and ticks the duty clock.

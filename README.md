@@ -9,7 +9,7 @@ it is opened. When the timer expires the phone returns to normal on its own.
 
 | | |
 | --- | --- |
-| Version | `1.0.0` |
+| Version | `1.0.1` |
 | Application ID | `com.lock46.app` |
 | APK | `LOCK46-v1.apk` |
 | Min / target SDK | 26 (Android 8.0) / 35 (Android 15) |
@@ -27,6 +27,9 @@ it is opened. When the timer expires the phone returns to normal on its own.
 - **Real app blocking** — enforcement happens when a restricted app is actually opened,
   not merely inside a LOCK46 launcher screen. A full-screen LOCK46 overlay appears with
   the remaining time and a Return Home button.
+- **Installs like a normal app** — LOCK46 deliberately ships **no accessibility service**.
+  Google Play Protect hard-blocks the installation of any sideloaded app that declares
+  one, so an accessibility-based build would be uninstallable for the people it is for.
 - **Phone access** — the dialer is always allowed, whether or not it is in the whitelist,
   so emergency calling is never intentionally blocked. Call content is never intercepted
   or collected.
@@ -61,9 +64,8 @@ com.lock46.app
 │   └── SettingsRepository.kt  Onboarding flag, default duration
 │
 ├── enforce/               Everything that makes a block actually happen.
-│   ├── Lock46AccessibilityService.kt  Primary foreground-app signal
-│   ├── ForegroundAppMonitor.kt        UsageStats backstop
-│   ├── Enforcer.kt                    Single decision point for both signals
+│   ├── ForegroundAppMonitor.kt        UsageStats foreground detection
+│   ├── Enforcer.kt                    Single decision point
 │   ├── BlockOverlay.kt                The blocking screen (WindowManager overlay)
 │   ├── DutyService.kt                 Foreground service, clock tick, notification
 │   ├── DutyController.kt              start / end / restore orchestration
@@ -93,7 +95,7 @@ com.lock46.app
 - Duty state is stored as **wall-clock** start/end times rather than `elapsedRealtime`,
   because it must survive a reboot. `DutyClock.reconcile` compensates for the clock being
   moved backwards so a clock change cannot buy duty-free time.
-- Both foreground signals funnel into `Enforcer.onForegroundPackage`, so the allow/block
+- Every foreground signal funnels into `Enforcer.onForegroundPackage`, so the allow/block
   rule exists in exactly one place.
 - Persistence uses **device-protected storage** with synchronous `commit()`, so the boot
   receiver can read duty state before first unlock and a process kill cannot lose a write.
@@ -102,9 +104,9 @@ com.lock46.app
 
 ## How the blocking mechanism works
 
-1. **Detect.** `Lock46AccessibilityService` receives `TYPE_WINDOW_STATE_CHANGED` and reads
-   `event.packageName`. It is configured with `canRetrieveWindowContent="false"` — it
-   cannot and does not read screen content.
+1. **Detect.** While a duty period is running, `DutyService` polls `UsageStatsManager`
+   every 600 ms for the most recent foreground event and reads nothing but the package
+   name. Polling stops entirely in Free Mode.
 2. **Decide.** `AccessPolicy.decide` returns ALLOW or BLOCK from the duty state, the
    user's whitelist, and a runtime-resolved always-allowed set (LOCK46 itself, the
    launcher, system UI, enabled keyboards, the dialer).
@@ -112,11 +114,21 @@ com.lock46.app
    of the offending app, showing the message, the blocked app, the remaining time and a
    Return Home button. BACK is swallowed. There is deliberately no "disable" control on
    this screen.
-4. **Backstop.** If the system stops the accessibility service, `DutyService` polls
-   `UsageStatsManager` every three seconds instead. Slower and coarser, but enforcement
-   degrades rather than disappearing.
-5. **Fallback.** Without the overlay permission LOCK46 can only send the user back to the
+4. **Fallback.** Without the overlay permission LOCK46 can only send the user back to the
    home screen. The app says so, in those words, on its setup screen.
+
+### Why polling rather than an accessibility service
+
+An `AccessibilityService` reports a window change instantly and would be the obvious
+choice. It is not used, because Google Play Protect **hard-blocks the installation** of any
+sideloaded app whose manifest declares `BIND_ACCESSIBILITY_SERVICE` — a block with no
+"install anyway" option, currently enforced in India among other regions. An app nobody can
+install enforces nothing.
+
+The trade is detection latency: sub-second instead of instant. The blocking overlay covers
+the app the moment the poll fires, so in practice the user sees LOCK46 rather than a usable
+app. `RepositoryHygieneTest` fails the build if an accessibility service is ever
+re-introduced.
 
 ---
 
@@ -127,9 +139,8 @@ speculatively.
 
 | Permission | Type | Why |
 | --- | --- | --- |
-| Accessibility service | User-enabled | Detect which app came to the foreground. Reads package names only. |
+| `PACKAGE_USAGE_STATS` | Special access | Detect which app came to the foreground. Reads package names only. |
 | `SYSTEM_ALERT_WINDOW` | User-granted | Draw the blocking screen over a blocked app. Also the documented route to putting UI in front of the user from a service on Android 10+. |
-| `PACKAGE_USAGE_STATS` | Special access | Backstop foreground detection if the accessibility service is stopped. |
 | `FOREGROUND_SERVICE` + `_SPECIAL_USE` | Normal | Keep the enforcement service alive for the duty period. |
 | `POST_NOTIFICATIONS` | Runtime | The ongoing Duty Mode notification Android requires for that service. |
 | `RECEIVE_BOOT_COMPLETED` | Normal | Restore duty state after a reboot. |
@@ -176,9 +187,12 @@ Being straight about this matters more than the marketing:
 
 - **This is not Device Owner enforcement.** LOCK46 V1 is a normal installed app. A
   sideloaded APK cannot obtain unlimited control over a personal Android phone.
-- **It can be disabled by someone holding the unlocked phone.** Turning off the
-  accessibility service, booting into safe mode, or uninstalling LOCK46 all defeat it.
-  The admin PIN prevents *casual* early exit. It is not tamper resistance.
+- **It can be disabled by someone holding the unlocked phone.** Revoking usage access,
+  booting into safe mode, or uninstalling LOCK46 all defeat it. The admin PIN prevents
+  *casual* early exit. It is not tamper resistance.
+- **Detection is sub-second, not instant.** A blocked app is visible for a fraction of a
+  second before the overlay covers it. Removing that gap would require an accessibility
+  service, which would make the app uninstallable — see above.
 - **The PIN keyspace is small.** PBKDF2 with 210 000 iterations and a random salt raises
   the cost of attacking the stored hash, and attempts are throttled with escalating
   lockouts, but 4–8 digits is 4–8 digits.
@@ -201,7 +215,7 @@ set (or `sdk.dir` in `local.properties`).
 
 ```bash
 ./gradlew clean
-./gradlew :android:testDebugUnitTest     # 82 unit tests
+./gradlew :android:testDebugUnitTest     # 83 unit tests
 ./gradlew :android:assembleDebug
 ```
 
@@ -226,8 +240,8 @@ Plain JVM unit tests, no emulator required:
 - whitelist persistence, replacement and reload
 - PIN verification, wrong-PIN rejection, lockout escalation, no plaintext in storage
 - invalid durations rejected at every layer
-- repository hygiene: no invalid package name, one manifest, one Activity, no network
-  permission, build identity matches Gradle
+- repository hygiene: no invalid package name, no accessibility service, one manifest,
+  one Activity, no network permission, build identity matches Gradle
 
 ---
 
@@ -295,4 +309,4 @@ The static landing page lives at the repository root (`index.html`, `style.css`,
 
 ---
 
-LOCK46 V1.0.0 · `com.lock46.app`
+LOCK46 V1.0.1 · `com.lock46.app`

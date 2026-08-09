@@ -23,15 +23,17 @@ import com.lock46.app.util.TimeFormat
  * Foreground service that keeps the app alive for the length of a duty period.
  *
  * It does three things: hold a visible ongoing notification (Android's price for staying
- * alive), tick the clock so duty ends exactly on time, and run the UsageStats backstop
- * when the accessibility service is not connected.
+ * alive), tick the clock so duty ends exactly on time, and — the important one — poll for
+ * the foreground app so a blocked app is caught the moment it opens.
+ *
+ * The poll runs at [DETECTION_TICK_MS] while on duty and stops entirely in Free Mode.
  */
 class DutyService : Service() {
 
     private val handler = Handler(Looper.getMainLooper())
     private lateinit var foregroundMonitor: ForegroundAppMonitor
     private var lastNotificationText: String? = null
-    private var backstopCounter = 0
+    private var lastSecondStamp = 0L
     private var started = false
 
     override fun onCreate() {
@@ -87,20 +89,19 @@ class DutyService : Service() {
                 return
             }
 
-            updateNotification(status.remainingMs)
-
-            // The accessibility service is event-driven and cheap; only fall back to
-            // polling UsageStats when it is not connected.
-            if (!Lock46AccessibilityService.isConnected) {
-                backstopCounter++
-                if (backstopCounter % BACKSTOP_EVERY_TICKS == 0 &&
-                    Permissions.hasUsageAccess(applicationContext)
-                ) {
-                    Enforcer.onForegroundPackage(foregroundMonitor.currentForegroundPackage())
-                }
+            // Detection runs on every tick — this is the enforcement path, not a backstop.
+            if (Permissions.hasUsageAccess(applicationContext)) {
+                Enforcer.onForegroundPackage(foregroundMonitor.resolveForegroundPackage())
             }
 
-            handler.postDelayed(this, TICK_MS)
+            // The notification only needs refreshing once a second, not on every poll.
+            val nowSecond = System.currentTimeMillis() / 1_000
+            if (nowSecond != lastSecondStamp) {
+                lastSecondStamp = nowSecond
+                updateNotification(status.remainingMs)
+            }
+
+            handler.postDelayed(this, DETECTION_TICK_MS)
         }
     }
 
@@ -162,10 +163,15 @@ class DutyService : Service() {
 
     companion object {
         private const val NOTIFICATION_ID = 4601
-        private const val TICK_MS = 1_000L
 
-        /** Poll UsageStats every 3 seconds when running without the accessibility service. */
-        private const val BACKSTOP_EVERY_TICKS = 3
+        /**
+         * How often the foreground app is checked while on duty.
+         *
+         * 600 ms is the balance point found for this workload: fast enough that a blocked
+         * app is covered before it is usable, slow enough that querying UsageStats does not
+         * become a meaningful battery cost over an 8-hour duty period.
+         */
+        private const val DETECTION_TICK_MS = 600L
 
         const val ACTION_STOP = "com.lock46.app.action.STOP_DUTY_SERVICE"
 

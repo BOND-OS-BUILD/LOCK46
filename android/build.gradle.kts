@@ -12,8 +12,8 @@ android {
         applicationId = "com.lock46.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.0.1"
         resourceConfigurations += listOf("en")
     }
 
@@ -109,10 +109,20 @@ tasks.register<Copy>("packageV1Apk") {
  * as a static file from the repository root — so that file is a build output that has to
  * be committed. Run this after changing app code, then commit the result.
  */
-tasks.register<Copy>("refreshSiteApk") {
+tasks.register("refreshSiteApk") {
     group = "build"
     description = "Copies the built APK to the repository root for the website to serve"
     dependsOn("packageV1Apk")
-    from(layout.buildDirectory.file("outputs/lock46/$apkOutputName"))
-    into(rootProject.layout.projectDirectory)
+
+    // A Copy task is not usable here: its destination would be the whole repository root,
+    // which Gradle then treats as this task's output — and that overlaps with AGP's own
+    // outputs under android/build, which it rejects as an undeclared dependency. Resolving
+    // both paths at configuration time and copying one file keeps the task honest.
+    val source = layout.buildDirectory.file("outputs/lock46/$apkOutputName")
+    val target = rootProject.layout.projectDirectory.file(apkOutputName).asFile
+
+    doLast {
+        source.get().asFile.copyTo(target, overwrite = true)
+        logger.lifecycle("Website APK refreshed: $target (${target.length()} bytes)")
+    }
 }
