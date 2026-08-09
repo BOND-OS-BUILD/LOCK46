@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">LOCK46</string>
+
+    <!-- Ongoing duty notification -->
+    <string name="notification_title">DUTY MODE ACTIVE</string>
+    <string name="notification_starting">Starting duty period…</string>
+    <string name="notification_remaining">Remaining: %1$s</string>
+
+    <!-- Blocking overlay -->
+    <string name="overlay_title">LOCK46</string>
+    <string name="overlay_subtitle">DUTY MODE</string>
+    <string name="overlay_message">This application is unavailable during Duty Mode.</string>
+    <string name="overlay_blocked_app">Blocked: %1$s</string>
+    <string name="overlay_remaining">Remaining: %1$s</string>
+    <string name="overlay_return_home">RETURN HOME</string>
+
+    <!-- Accessibility service -->
+    <string name="accessibility_service_label">LOCK46 Duty Mode</string>
+    <string name="accessibility_service_description">Lets LOCK46 see which app has just come to the foreground so that apps you have not approved can be blocked during a duty period. LOCK46 does not read screen content, text, or any personal data, and works entirely offline.</string>
+</resources>

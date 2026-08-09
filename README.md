@@ -235,13 +235,34 @@ Plain JVM unit tests, no emulator required:
 
 | Where | Path |
 | --- | --- |
+| **Served by the website** | **`/LOCK46-v1.apk`** — committed at the repository root |
 | Local build | `android/build/outputs/apk/debug/android-debug.apk` |
 | Local, release-named | `android/build/outputs/lock46/LOCK46-v1.apk` |
 | CI artifact | `LOCK46-v1-apk` on the workflow run |
-| Release asset | `https://github.com/BOND-OS-BUILD/LOCK46/releases/download/v1-latest/LOCK46-v1.apk` |
+| Release asset (mirror) | `https://github.com/BOND-OS-BUILD/LOCK46/releases/download/v1-latest/LOCK46-v1.apk` |
 
-The website's download button points at that release URL and downloads the APK directly —
-not a repository page, not a releases index, not an Actions run.
+### Why the APK is committed
+
+The download button links to `/LOCK46-v1.apk` — a static file on our own domain. Clicking
+it hands the browser the binary directly: no github.com, no releases page, no Actions run,
+no redirect. `vercel.json` sets `Content-Type: application/vnd.android.package-archive` and
+a `Content-Disposition: attachment` for that path.
+
+That makes the root APK a build output which has to be in version control, so `.gitignore`
+excludes `*.apk` with a single deliberate exception for it. After changing app code:
+
+```bash
+./gradlew :android:refreshSiteApk   # rebuild and copy to the repository root
+git add -f LOCK46-v1.apk
+```
+
+CI does this automatically on `main`. It compares `classes.dex` + `resources.arsc` between
+the freshly built APK and the committed one — not the whole file, because zip timestamps
+and the debug signature differ on every build while d8 output does not — and commits a
+refresh only when the app has genuinely changed. Every run, including pull requests, fails
+if the root APK is missing or is not a valid APK.
+
+The GitHub release at the `v1-latest` tag is kept as a mirror for people who prefer it.
 
 ## CI
 

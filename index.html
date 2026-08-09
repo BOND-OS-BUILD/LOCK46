@@ -39,18 +39,18 @@
     </p>
 
     <!--
-      Direct link to the release asset produced by .github/workflows/release.yml.
-      This must resolve to the APK binary itself — never to a repository page,
-      a releases index, or an Actions run.
+      Same-origin download. The APK is committed at the repository root and served as a
+      static file by Vercel, so this link hands the browser the binary directly from this
+      domain: no github.com, no releases page, no Actions run, no redirect.
+      vercel.json sets Content-Type and Content-Disposition for this path.
     -->
     <a class="cta"
-       href="https://github.com/BOND-OS-BUILD/LOCK46/releases/download/v1-latest/LOCK46-v1.apk"
-       download="LOCK46-v1.apk"
-       rel="noopener">
+       href="/LOCK46-v1.apk"
+       download="LOCK46-v1.apk">
       DOWNLOAD LOCK46 V1
     </a>
     <p class="cta-note">
-      Direct APK download · <code>LOCK46-v1.apk</code> · Android 8.0 or newer
+      Direct APK download · <code>LOCK46-v1.apk</code> · 8.8&nbsp;MB · Android 8.0 or newer
     </p>
   </section>
 

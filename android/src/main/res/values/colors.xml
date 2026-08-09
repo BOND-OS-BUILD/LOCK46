@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="lock46_ink">#FF06070A</color>
+    <color name="lock46_panel">#FF10141A</color>
+    <color name="lock46_line">#FF232C37</color>
+    <color name="lock46_text_primary">#FFE9EDF2</color>
+    <color name="lock46_text_secondary">#FF8B98A8</color>
+    <color name="lock46_text_dim">#FF5C6775</color>
+    <color name="lock46_duty">#FFE0912F</color>
+    <color name="lock46_alert">#FFCF4A3C</color>
+    <color name="ic_launcher_background">#FF06070A</color>
+</resources>

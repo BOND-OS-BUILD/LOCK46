@@ -7,6 +7,10 @@ local.properties
 captures/
 *.apk
 *.aab
+
+# ...except the one the website serves. This APK is committed on purpose: the download
+# button must serve the binary from our own domain, with no GitHub URL involved.
+!/LOCK46-v1.apk
 *.ap_
 *.dex
 *.class

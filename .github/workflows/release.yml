@@ -1,0 +1,208 @@
+name: Build and release LOCK46 V1
+
+# Single workflow for the whole pipeline. Any other workflow file in this repository is
+# obsolete and should be deleted rather than left to race with this one.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: lock46-release
+  cancel-in-progress: false
+
+env:
+  APK_NAME: LOCK46-v1.apk
+  RELEASE_TAG: v1-latest
+
+jobs:
+  build:
+    name: Build, verify and publish APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Clean
+        run: ./gradlew clean --no-daemon
+
+      - name: Unit tests
+        run: ./gradlew :android:testDebugUnitTest --no-daemon
+
+      - name: Assemble debug APK
+        run: ./gradlew :android:assembleDebug --no-daemon
+
+      # The build can "succeed" while producing nothing packageable, so the APK's
+      # existence is asserted explicitly rather than inferred from the exit code.
+      - name: Verify APK exists and rename it
+        id: apk
+        run: |
+          set -euo pipefail
+          SOURCE="$(find android/build/outputs/apk/debug -name '*.apk' -type f | head -n 1)"
+
+          if [ -z "${SOURCE}" ] || [ ! -f "${SOURCE}" ]; then
+            echo "::error::No APK was produced by :android:assembleDebug"
+            exit 1
+          fi
+
+          mkdir -p dist
+          cp "${SOURCE}" "dist/${APK_NAME}"
+
+          SIZE="$(stat -c%s "dist/${APK_NAME}")"
+          echo "APK: dist/${APK_NAME} (${SIZE} bytes)"
+
+          # A truncated or empty file would still pass a bare -f test.
+          if [ "${SIZE}" -lt 1000000 ]; then
+            echo "::error::APK is implausibly small (${SIZE} bytes) — treating as a failed build"
+            exit 1
+          fi
+
+          # Confirm it is a real APK (a zip whose entries include the Android manifest).
+          if ! unzip -l "dist/${APK_NAME}" | grep -q "AndroidManifest.xml"; then
+            echo "::error::dist/${APK_NAME} is not a valid APK — no AndroidManifest.xml inside"
+            exit 1
+          fi
+
+          echo "size=${SIZE}" >> "$GITHUB_OUTPUT"
+
+      # The download button is only as good as the file behind it, so assert the committed
+      # APK is present and real on every run, including pull requests.
+      - name: Verify the website's APK is a real APK
+        run: |
+          set -euo pipefail
+          if [ ! -f "${APK_NAME}" ]; then
+            echo "::error::${APK_NAME} is missing from the repository root — the website's download button would 404"
+            exit 1
+          fi
+          if ! unzip -l "${APK_NAME}" | grep -q "AndroidManifest.xml"; then
+            echo "::error::${APK_NAME} at the repository root is not a valid APK"
+            exit 1
+          fi
+          echo "Website APK present: $(stat -c%s "${APK_NAME}") bytes"
+
+      # The website's download button serves /LOCK46-v1.apk from our own domain, so the
+      # APK at the repository root is what users actually get. Keep it in step with the
+      # source, or the site quietly serves a stale build.
+      #
+      # Comparison is on classes.dex + resources.arsc rather than the whole file: d8 is
+      # deterministic, but zip timestamps and the debug signature are not, so a byte
+      # comparison would report a change on every single build.
+      - name: Refresh the APK the website serves
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          fingerprint() {
+            local apk="$1"
+            if [ ! -f "$apk" ]; then echo "absent"; return; fi
+            { unzip -p "$apk" classes.dex 2>/dev/null || true
+              unzip -p "$apk" resources.arsc 2>/dev/null || true
+            } | sha256sum | cut -d' ' -f1
+          }
+
+          BUILT="$(fingerprint "dist/${APK_NAME}")"
+          SERVED="$(fingerprint "${APK_NAME}")"
+          echo "built:  ${BUILT}"
+          echo "served: ${SERVED}"
+
+          if [ "${BUILT}" = "${SERVED}" ]; then
+            echo "Website APK is already current — nothing to commit."
+            exit 0
+          fi
+
+          cp "dist/${APK_NAME}" "${APK_NAME}"
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f "${APK_NAME}"
+          # [skip ci] stops this commit from triggering the workflow again.
+          git commit -m "Refresh website APK for $(git rev-parse --short HEAD) [skip ci]"
+          git push origin HEAD:main
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LOCK46-v1-apk
+          path: dist/${{ env.APK_NAME }}
+          if-no-files-found: error
+          retention-days: 90
+
+      # Everything below publishes the download the website links to. It only runs for
+      # pushes to main: a failed or in-review build must never replace a good release.
+      - name: Publish release asset
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          # A moving tag keeps the website's download URL stable across builds.
+          git tag -f "${RELEASE_TAG}"
+          git push -f origin "refs/tags/${RELEASE_TAG}"
+
+          if gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
+            gh release upload "${RELEASE_TAG}" "dist/${APK_NAME}" --clobber
+          else
+            gh release create "${RELEASE_TAG}" "dist/${APK_NAME}" \
+              --title "LOCK46 V1.0.0" \
+              --notes "LOCK46 V1 debug build. Direct download: LOCK46-v1.apk"
+          fi
+
+      - name: Verify the release asset is downloadable
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}/${APK_NAME}"
+
+          # Poll: GitHub takes a moment to make a freshly uploaded asset public.
+          for attempt in 1 2 3 4 5 6; do
+            CODE="$(curl -sSL -o /tmp/verify.apk -w '%{http_code}' "${URL}" || echo 000)"
+            if [ "${CODE}" = "200" ] && unzip -l /tmp/verify.apk | grep -q "AndroidManifest.xml"; then
+              echo "Verified: ${URL} serves a valid APK ($(stat -c%s /tmp/verify.apk) bytes)"
+              exit 0
+            fi
+            echo "Attempt ${attempt}: HTTP ${CODE} — retrying in 10s"
+            sleep 10
+          done
+
+          echo "::error::${URL} did not serve a valid APK"
+          exit 1
+
+      - name: Build summary
+        if: always()
+        run: |
+          {
+            echo "### LOCK46 V1 build"
+            echo ""
+            echo "| Item | Value |"
+            echo "| --- | --- |"
+            echo "| APK | \`${APK_NAME}\` |"
+            echo "| Size | ${{ steps.apk.outputs.size || 'not produced' }} bytes |"
+            echo "| Release tag | \`${RELEASE_TAG}\` |"
+            echo "| Direct URL | https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}/${APK_NAME} |"
+          } >> "$GITHUB_STEP_SUMMARY"
