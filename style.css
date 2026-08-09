@@ -1,0 +1,215 @@
+/* LOCK46 landing page — same dark operational palette as the app. */
+
+:root {
+  --ink: #06070A;
+  --panel: #10141A;
+  --panel-raised: #161C24;
+  --line: #232C37;
+  --text: #E9EDF2;
+  --text-2: #8B98A8;
+  --text-dim: #5C6775;
+  --duty: #E0912F;
+  --ready: #3FA06A;
+  --alert: #CF4A3C;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--text);
+  font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+code {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.9em;
+  color: var(--duty);
+}
+
+a { color: var(--duty); }
+
+/* ---------- top bar ---------- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--line);
+}
+
+.wordmark {
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  font-size: 14px;
+}
+
+.version {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+}
+
+/* ---------- layout ---------- */
+
+main {
+  max-width: 940px;
+  margin: 0 auto;
+  padding: 0 24px 80px;
+}
+
+section { margin-top: 72px; }
+
+h1 {
+  font-size: clamp(44px, 11vw, 84px);
+  line-height: 1;
+  letter-spacing: 0.06em;
+  margin: 6px 0 20px;
+  font-weight: 700;
+}
+
+h2 {
+  font-size: 15px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text);
+  margin: 0 0 12px;
+}
+
+/* ---------- hero ---------- */
+
+.hero { padding-top: 76px; }
+
+.eyebrow {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--duty);
+}
+
+.tagline {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: clamp(18px, 4.4vw, 26px);
+  line-height: 1.32;
+  letter-spacing: 0.1em;
+  color: var(--duty);
+  margin: 0 0 32px;
+  font-weight: 600;
+}
+
+.lede {
+  max-width: 62ch;
+  color: var(--text-2);
+  font-size: 17px;
+  margin: 0 0 18px;
+}
+
+.cta {
+  display: inline-block;
+  margin-top: 22px;
+  padding: 19px 40px;
+  background: var(--duty);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.14em;
+  text-decoration: none;
+  border-radius: 6px;
+  transition: filter 0.12s ease;
+}
+
+.cta:hover,
+.cta:focus-visible { filter: brightness(1.12); }
+
+.cta-note {
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+/* ---------- feature grid ---------- */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(268px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 24px;
+}
+
+.card p {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 14.5px;
+}
+
+/* ---------- panels ---------- */
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 30px;
+}
+
+.panel p {
+  color: var(--text-2);
+  max-width: 74ch;
+  margin: 0 0 14px;
+  font-size: 15px;
+}
+
+.panel p:last-child { margin-bottom: 0; }
+
+.panel.honest { border-color: var(--duty); }
+.panel.honest h2 { color: var(--duty); }
+
+.muted { color: var(--text-dim) !important; }
+
+/* ---------- steps ---------- */
+
+.steps ol {
+  margin: 0;
+  padding-left: 22px;
+  color: var(--text-2);
+  max-width: 74ch;
+}
+
+.steps li {
+  margin-bottom: 10px;
+  font-size: 15px;
+}
+
+/* ---------- footer ---------- */
+
+footer {
+  border-top: 1px solid var(--line);
+  padding: 28px 24px 44px;
+  text-align: center;
+}
+
+footer p {
+  margin: 4px 0;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+@media (max-width: 640px) {
+  section { margin-top: 54px; }
+  .hero { padding-top: 46px; }
+  .panel, .card { padding: 20px; }
+}

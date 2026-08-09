@@ -1,0 +1,28 @@
+### Android / Gradle ###
+*.iml
+.gradle/
+build/
+local.properties
+.cxx/
+captures/
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+release/
+
+### Keystores — never commit signing material ###
+*.jks
+*.keystore
+
+### IDE ###
+.idea/
+*.iws
+.DS_Store
+
+### Logs ###
+*.log
+
+### Vercel ###
+.vercel

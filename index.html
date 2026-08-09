@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LOCK46 — On duty. Off distractions.</title>
+<meta name="description" content="LOCK46 turns an Android phone into an essentials-only device for the length of a duty period. Offline, no account, no server.">
+<meta name="theme-color" content="#06070A">
+<meta property="og:title" content="LOCK46 — On duty. Off distractions.">
+<meta property="og:description" content="Android Duty Mode. Only the apps you approve, for exactly as long as you're on duty.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%2306070A'/%3E%3Cpath fill='%23E0912F' d='M12 4a3 3 0 0 1 3 3v2H9V7a3 3 0 0 1 3-3zm5 5V7a5 5 0 0 0-10 0v2h-.5A1.5 1.5 0 0 0 5 10.5v9A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 17.5 9z'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <span class="wordmark">LOCK46</span>
+  <span class="version">V1.0.0</span>
+</header>
+
+<main>
+
+  <section class="hero">
+    <p class="eyebrow">Android Duty Mode</p>
+    <h1>LOCK46</h1>
+    <p class="tagline">ON DUTY.<br>OFF DISTRACTIONS.</p>
+
+    <p class="lede">
+      LOCK46 turns a personal Android phone into an essentials-only device for
+      exactly as long as you are on duty. You start the period, you choose the
+      length, and you decide which apps stay available. Everything you have not
+      approved is blocked the moment you try to open it.
+    </p>
+
+    <p class="lede">
+      When the timer runs out, the phone returns to normal on its own. Ending
+      duty early requires an admin PIN.
+    </p>
+
+    <!--
+      Direct link to the release asset produced by .github/workflows/release.yml.
+      This must resolve to the APK binary itself — never to a repository page,
+      a releases index, or an Actions run.
+    -->
+    <a class="cta"
+       href="https://github.com/BOND-OS-BUILD/LOCK46/releases/download/v1-latest/LOCK46-v1.apk"
+       download="LOCK46-v1.apk"
+       rel="noopener">
+      DOWNLOAD LOCK46 V1
+    </a>
+    <p class="cta-note">
+      Direct APK download · <code>LOCK46-v1.apk</code> · Android 8.0 or newer
+    </p>
+  </section>
+
+  <section class="grid">
+    <article class="card">
+      <h2>Duty periods</h2>
+      <p>
+        Start duty with a preset — 30 minutes, 1, 2, 4 or 8 hours — or set a
+        custom length up to 24 hours. The remaining time and the exact end time
+        are always on screen.
+      </p>
+    </article>
+
+    <article class="card">
+      <h2>Default is block</h2>
+      <p>
+        Nothing is allowed because of what category it belongs to. You approve
+        specific apps; everything else is unavailable until duty ends. The home
+        screen, keyboard and dialer stay available automatically.
+      </p>
+    </article>
+
+    <article class="card">
+      <h2>Real enforcement</h2>
+      <p>
+        Blocking happens when you actually open a restricted app, not just
+        inside a launcher screen. A LOCK46 screen appears over the app with the
+        time remaining and a way back to the home screen.
+      </p>
+    </article>
+
+    <article class="card">
+      <h2>Emergency calling</h2>
+      <p>
+        The dialer is never intentionally blocked, whether or not you have
+        added it to your essential apps. LOCK46 does not intercept, record or
+        read call content.
+      </p>
+    </article>
+
+    <article class="card">
+      <h2>Survives a reboot</h2>
+      <p>
+        Restarting the phone does not clear an active duty period. State is
+        restored on boot, including before the first unlock, and the timer
+        picks up where it left off.
+      </p>
+    </article>
+
+    <article class="card">
+      <h2>Offline by construction</h2>
+      <p>
+        No account, no server, no cloud, no analytics. The app does not declare
+        the internet permission at all, so it cannot phone home even if
+        something tried to.
+      </p>
+    </article>
+  </section>
+
+  <section class="panel">
+    <h2>What LOCK46 stores</h2>
+    <p>
+      Only what the restriction needs to work, all of it on the device: your
+      approved app list, the current duty period's start and end time, your
+      duty-duration default, and a salted PBKDF2 hash of your admin PIN. The
+      PIN itself is never stored and never written to logs.
+    </p>
+    <p class="muted">
+      It does not collect calls, messages, contacts, location, microphone,
+      camera, files or browsing history. The accessibility service reads only
+      the package name of the app coming to the foreground — never screen
+      content.
+    </p>
+  </section>
+
+  <section class="panel honest">
+    <h2>What V1 is not</h2>
+    <p>
+      LOCK46 V1 is a normal installed Android app, not a managed-device
+      deployment. Android does not give a sideloaded APK unlimited control over
+      a personal phone, and this release does not pretend otherwise.
+    </p>
+    <p class="muted">
+      Someone with physical access to an unlocked phone can disable the
+      accessibility service, boot into safe mode, or uninstall LOCK46. The
+      admin PIN is a prototype authorisation mechanism that stops casual
+      early exit — it is not tamper resistance. Device Owner / Android
+      Enterprise enforcement is planned for V2.
+    </p>
+  </section>
+
+  <section class="steps">
+    <h2>Getting started</h2>
+    <ol>
+      <li>Download <code>LOCK46-v1.apk</code> and open it. Allow installation from this source if Android asks.</li>
+      <li>Open LOCK46 and follow the five setup steps.</li>
+      <li>Create an admin PIN — this is the only way to end duty early.</li>
+      <li>Grant the accessibility service and display-over-other-apps permissions. Each is explained before you are sent to Android settings.</li>
+      <li>Choose your essential apps.</li>
+      <li>Press START DUTY when you report for duty.</li>
+    </ol>
+  </section>
+
+</main>
+
+<footer>
+  <p>LOCK46 V1.0.0 · <code>com.lock46.app</code></p>
+  <p class="muted">
+    <a href="https://github.com/BOND-OS-BUILD/LOCK46" rel="noopener">Source and build instructions on GitHub</a>
+  </p>
+</footer>
+
+</body>
+</html>
